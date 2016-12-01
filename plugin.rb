@@ -1,7 +1,7 @@
-# name: discourse-oauth2-basic
-# about: Generic OAuth2 Plugin
-# version: 0.2
-# authors: Robin Ward
+# name: Discourse-Auth0-Plugin
+# about: Auth0 OAuth2 Plugin
+# version: 0.1
+# authors: Leo Giovanetti
 
 require_dependency 'auth/oauth2_authenticator.rb'
 
@@ -78,6 +78,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
       json_walk(result, user_json, :username)
       json_walk(result, user_json, :name)
       json_walk(result, user_json, :email)
+      json_walk(result, user_json, :email_verified)
     end
 
     result
@@ -93,12 +94,12 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
     result.name = user_details[:name]
     result.username = user_details[:username]
     result.email = user_details[:email]
-    result.email_valid = result.email.present? && SiteSetting.oauth2_email_verified?
+    result.email_valid = user_details[:email_verified]
 
     current_info = ::PluginStore.get("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}")
     if current_info
       result.user = User.where(id: current_info[:user_id]).first
-    elsif SiteSetting.oauth2_email_verified?
+    elsif result.email_valid?
       result.user = User.where(email: Email.downcase(result.email)).first
       if result.user && user_details[:user_id]
         ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}", {user_id: result.user.id})
