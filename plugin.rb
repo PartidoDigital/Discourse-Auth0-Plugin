@@ -78,7 +78,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
       json_walk(result, user_json, :username)
       json_walk(result, user_json, :name)
       json_walk(result, user_json, :email)
-      json_walk(result, user_json, :email_verified)
+      json_walk(result, user_json, :email_valid)
     end
 
     result
@@ -94,7 +94,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
     result.name = user_details[:name]
     result.username = user_details[:username]
     result.email = user_details[:email]
-    result.email_verified = user_details[:email_verified]
+    result.email_valid = user_details[:email_valid]
 
     current_info = ::PluginStore.get("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}")
     if current_info
