@@ -1,7 +1,8 @@
-# name: Discourse-Auth0-Plugin
-# about: Auth0 OAuth2 Plugin
-# version: 0.1
-# authors: Leo Giovanetti
+# name: discourse-oauth2-basic
+# about: Generic OAuth2 Plugin
+# version: 0.2
+# authors: Robin Ward
+# url: https://github.com/discourse/discourse-oauth2-basic
 
 require_dependency 'auth/oauth2_authenticator.rb'
 
@@ -14,17 +15,21 @@ class ::OmniAuth::Strategies::Oauth2Basic < ::OmniAuth::Strategies::OAuth2
       id: access_token['id']
     }
   end
+
+  def callback_url
+    full_host + script_name + callback_path
+  end
 end
 
 class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
   def register_middleware(omniauth)
     omniauth.provider :oauth2_basic,
                       name: 'oauth2_basic',
-                      setup: lambda {|env|
+                      setup: lambda { |env|
                         opts = env['omniauth.strategy'].options
                         opts[:client_id] = SiteSetting.oauth2_client_id
                         opts[:client_secret] = SiteSetting.oauth2_client_secret
-                        opts[:provider_ignores_state] = true
+                        opts[:provider_ignores_state] = false
                         opts[:client_options] = {
                           authorize_url: SiteSetting.oauth2_authorize_url,
                           token_url: SiteSetting.oauth2_token_url
@@ -32,7 +37,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
                         opts[:authorize_options] = SiteSetting.oauth2_authorize_options.split("|").map(&:to_sym)
 
                         if SiteSetting.oauth2_send_auth_header?
-                          opts[:token_params] = {headers: {'Authorization' => basic_auth_header }}
+                          opts[:token_params] = { headers: { 'Authorization' => basic_auth_header } }
                         end
                       }
   end
@@ -68,7 +73,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
 
     log("user_json_url: #{user_json_url}")
 
-    user_json = JSON.parse(open(user_json_url, 'Authorization' => "Bearer #{token}" ).read)
+    user_json = JSON.parse(open(user_json_url, 'Authorization' => "Bearer #{token}").read)
 
     log("user_json: #{user_json}")
 
@@ -99,10 +104,10 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
     current_info = ::PluginStore.get("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}")
     if current_info
       result.user = User.where(id: current_info[:user_id]).first
-    elsif user_details[:email_valid]
-      result.user = User.where(email: Email.downcase(result.email)).first
+    elsif SiteSetting.oauth2_email_verified?
+      result.user = User.find_by_email(result.email)
       if result.user && user_details[:user_id]
-        ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}", {user_id: result.user.id})
+        ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}", user_id: result.user.id)
       end
     end
 
@@ -111,7 +116,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
   end
 
   def after_create_account(user, auth)
-    ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{auth[:extra_data][:oauth2_basic_user_id]}", {user_id: user.id })
+    ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{auth[:extra_data][:oauth2_basic_user_id]}", user_id: user.id)
   end
 end
 
