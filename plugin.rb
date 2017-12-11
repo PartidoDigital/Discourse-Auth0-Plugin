@@ -1,8 +1,8 @@
-# name: discourse-oauth2-basic
-# about: Generic OAuth2 Plugin
+# name: Discourse-Auth0-Plugin
+# about: Auth0 OAuth2 Plugin
 # version: 0.2
-# authors: Robin Ward
-# url: https://github.com/discourse/discourse-oauth2-basic
+# authors: Leo Giovanetti
+# url: https://github.com/PartidoDigital/Discourse-Auth0-Plugin
 
 require_dependency 'auth/oauth2_authenticator.rb'
 
